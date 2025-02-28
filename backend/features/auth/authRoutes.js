@@ -35,7 +35,7 @@ router.post('/login', async (req, res) => {
         if (!existingUser)
             return res.sendStatus(404);
         if (!existingUser.isVerified) {
-            const existingOTP = OTP.findOne({ email: existingUser.email });
+            const existingOTP = await OTP.findOne({ email: existingUser.email });
             const isOTPExpired = existingOTP.expiresAt < Date.now();
             if (!isOTPExpired)
                 return res.sendStatus(401);

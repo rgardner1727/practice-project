@@ -40,6 +40,7 @@ router.post('/confirm-otp', async (req, res) => {
             return res.sendStatus(403);
         existingUser.isVerified = true;
         await existingUser.save();
+        await OTP.deleteMany({ email: email });
         return res.sendStatus(200);
     } catch (error) {
         console.log(error);

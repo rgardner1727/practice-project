@@ -65,7 +65,7 @@ const sendOTPEmail = async (recipientEmail, recipientFirstName) => {
             email: recipientEmail,
             otp: oneTimePasscode,
             createdAt: Date.now(),
-            expiresAt: new Date(Date.now() + 30 * 60 * 1000)
+            expiresAt: new Date(Date.now() + .5 * 60 * 1000)
         })
 
         await newOTP.save();
