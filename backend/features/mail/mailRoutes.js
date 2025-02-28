@@ -2,18 +2,9 @@ require('dotenv').config({ path: '../../.env'});
 
 const express = require('express');
 const router = express.Router();
-const nodemailer = require('nodemailer');
 const User = require('../user/userSchema');
-
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
-    auth: {
-        user: process.env.MY_GMAIL,
-        pass: process.env.MY_GMAIL_PASSWORD
-    }
-});
+const OTP = require('./otpSchema.js');
+const { sendConfirmationEmail } = require('./mailHelpers.js');
 
 router.post('/send-confirmation-email', async (req, res) => {
     try {
@@ -28,31 +19,32 @@ router.post('/send-confirmation-email', async (req, res) => {
     } catch (error) {
         res.sendStatus(500);
     }
-})
+});
 
-const sendConfirmationEmail = async (recipientEmail, recipientFirstName) => {
+router.post('/confirm-otp', async (req, res) => {
     try {
-        const mailOptions = {
-            from: process.env.MY_GMAIL,
-            to: recipientEmail,
-            subject: 'Example App Name',
-            text: 'Welcome to our app!',
-            html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 10px; border: 1px solid #ccc; display: grid; justify-content: center; align-items: center;">
-                <h1 style="text-align: center;">Welcome to Example App Name</h1>
-                <p>Thank you for signing up. Consider purchasing a subscription to get full access to our app.</p>
-                <p>If you have any questions, please contact us at <a href="mailto:support@example.com">support@example.com</a>.</p>
-                <p style="font-size: 12px;">Thank you for choosing Example App Name!</p>
-                <p style="font-size: 12px;">P.S. This email was sent from a program I wrote. Pretty cool, right? Love, Ryan</p>
-            </div>
-            `
-        }
-        const info = await transporter.sendMail(mailOptions)
-        return [info, null];
+        const { email, oneTimePasscode } = req.body;
+        const existingUser = await User.findOne({ email: email });
+        if (!existingUser)
+            return res.sendStatus(404);
+        if (existingUser.isVerified)
+            throw new Error('User is already verified. They should not be here.');
+        if (!oneTimePasscode)
+            return res.sendStatus(401);
+        const existingOTP = await OTP.findOne({ email: email });
+        if (!existingOTP)
+            return res.sendStatus(404);
+        if (existingOTP.expiresAt < Date.now())
+            return res.sendStatus(401);
+        if (oneTimePasscode !== existingOTP.otp)
+            return res.sendStatus(403);
+        existingUser.isVerified = true;
+        await existingUser.save();
+        return res.sendStatus(200);
     } catch (error) {
-        console.error('Error sending email');
-        return [null, error];
+        console.log(error);
+        res.sendStatus(500);
     }
-}
+})
 
 module.exports = router;

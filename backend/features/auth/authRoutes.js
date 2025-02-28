@@ -4,6 +4,8 @@ const User = require('../user/userSchema');
 const RefreshToken = require('./refreshTokenSchema');
 const bcrypt = require('bcrypt');
 const { generateAccessToken, generateRefreshToken, authenticateRefreshToken } = require('./authHelpers');
+const { sendOTPEmail } = require('../mail/mailHelpers.js');
+const OTP = require('../mail/otpSchema.js');
 
 router.post('/register', async (req, res) => {
     try {
@@ -19,6 +21,7 @@ router.post('/register', async (req, res) => {
             password: hashedPassword
         });
         await newUser.save();
+        await sendOTPEmail(newUser.email, newUser.firstName);
         res.sendStatus(201);
     } catch (error) {
         res.sendStatus(500);
@@ -31,6 +34,15 @@ router.post('/login', async (req, res) => {
         const existingUser = await User.findOne({ email: email });
         if (!existingUser)
             return res.sendStatus(404);
+        if (!existingUser.isVerified) {
+            const existingOTP = OTP.findOne({ email: existingUser.email });
+            const isOTPExpired = existingOTP.expiresAt < Date.now();
+            if (!isOTPExpired)
+                return res.sendStatus(401);
+            await OTP.deleteMany({ email: existingUser.email });
+            await sendOTPEmail(existingUser.email, existingUser.firstName);
+            return res.sendStatus(401);
+        }
         const isCorrectPassword = await bcrypt.compare(password, existingUser.password);
         if (!isCorrectPassword)
             return res.sendStatus(401);
