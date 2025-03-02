@@ -3,7 +3,7 @@ const {
     isUserVerified,
     retrieveOTPByUser,
     isOTPExpired,
-    deleteCurrentOTPandSendNewOTP,
+    deleteCurrentOTP,
     isPasswordsMatching,
     hashPassword,
     generateAccessToken,
@@ -40,11 +40,13 @@ router.post('/login', async (req, res) => {
         if (!isUserVerified(existingUser)) {
             const otp = await retrieveOTPByUser(existingUser);
             if (!otp) {
-                await deleteCurrentOTPandSendNewOTP(existingUser);
+                await deleteCurrentOTP(existingUser);
+                await sendOTPEmail(existingUser.email, existingUser.firstName);
                 return res.status(404).send('OTP was not sent for user.');
             }
             if (!isOTPExpired(otp)) return res.status(401).send('User still has valid OTP.');
-            await deleteCurrentOTPandSendNewOTP(existingUser);
+            await deleteCurrentOTP(existingUser);
+            await sendOTPEmail(existingUser.email, existingUser.firstName);
             return res.status(401).send('User is not verified and OTP is expired. New OTP has been sent.');
         }
         if (!isPasswordsMatching(existingUser, password)) return res.status(403).send('Invalid password provided.');

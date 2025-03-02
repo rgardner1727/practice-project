@@ -23,9 +23,8 @@ const isOTPExpired = (otp) => {
     return otp.expiresAt < Date.now();
 }
 
-const deleteCurrentOTPandSendNewOTP = async (user) => {
+const deleteCurrentOTP = async (user) => {
     await OTP.deleteMany({ email: user.email });
-    await sendOTPEmail(user.email, user.firtstName);
 }
 
 const isPasswordsMatching = async (user, password) => {
@@ -120,7 +119,7 @@ module.exports = {
     isUserVerified, 
     retrieveOTPByUser,
     isOTPExpired, 
-    deleteCurrentOTPandSendNewOTP,
+    deleteCurrentOTP,
     isPasswordsMatching,
     hashPassword,
     generateAccessToken,
@@ -130,5 +129,3 @@ module.exports = {
     registerUser,
     deleteUserRefreshTokens,
 }
-
-
