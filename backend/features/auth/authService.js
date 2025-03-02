@@ -79,15 +79,18 @@ const authenticateAccessToken = (req, res, next) => {
     }
 }
 
+const retrieveRefreshTokenByEmail = async (email) => {
+    const refreshToken = await RefreshToken.findOne({ email: email });
+    return refreshToken.refreshToken;
+}
+
 const authenticateRefreshToken = async (req, res, next) => {
     try {
         const { email } = req.body;
-        const existingRefreshToken = await RefreshToken.findOne({ email: email });
-        if (!existingRefreshToken)
-            return res.sendStatus(401);
-        jwt.verify(existingRefreshToken.refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
-            if (err)
-                return res.sendStatus(403);
+        const existingRefreshToken = await retrieveRefreshTokenByEmail(email);
+        if (!existingRefreshToken) return res.sendStatus(401);
+        jwt.verify(existingRefreshToken, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+            if (err) return res.sendStatus(403);
             req.user = user;
             next();
         })
@@ -107,6 +110,11 @@ const registerUser = async (firstName, lastName, email, hashedPassword) => {
     return user;
 }
 
+const deleteUserRefreshTokens = async (user) => {
+    await RefreshToken.deleteMany({ email: user.email });
+    return;
+}
+
 module.exports = {
     retrieveUserByEmail, 
     isUserVerified, 
@@ -120,6 +128,7 @@ module.exports = {
     authenticateAccessToken,
     authenticateRefreshToken,
     registerUser,
+    deleteUserRefreshTokens,
 }
 
 

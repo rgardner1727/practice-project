@@ -5,14 +5,14 @@ const app = express();
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-const authRoutes = require('../features/auth/authRoutes');
+const authController = require('../features/auth/authController.js');
 const mailRoutes = require('../features/mail/mailRoutes');
 
 app.use(express.json());
 app.use(cors({
     origin: process.env.ORIGIN
 }))
-app.use('/auth', authRoutes);
+app.use('/auth', authController);
 app.use('/mail', mailRoutes);
 
 (async () => {
